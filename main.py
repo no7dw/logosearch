@@ -75,10 +75,3 @@ def get_logo_url(entity_name, size='small'):
     return None
 
 # Example usage:
-test_entities = ["nvdia","meta", "tsla"]
-
-for entity in test_entities:
-    logo_url = get_logo_url(entity)
-    print(f"Logo URL for {entity}: {logo_url}")
-    print("-" * 80)  # Separator for better readability
-
