@@ -6,7 +6,9 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "requests>=2.25.0",
+       "requests>=2.25.0",
+        "aiohttp>=3.8.0",
+        "python-dotenv>=1.0.0",
     ],
     python_requires=">=3.7",
     author="Your Name",

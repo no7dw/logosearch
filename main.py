@@ -1,8 +1,9 @@
 import os
 import json
-import requests
+import aiohttp
+import asyncio
 
-def search_images(entity_name, num_results=10):
+async def search_images(entity_name, num_results=10):
     url = "https://google.serper.dev/images"
     headers = {
         'X-API-Key': os.environ.get('SERPER_API_KEY'),
@@ -15,22 +16,25 @@ def search_images(entity_name, num_results=10):
         "num": num_results
     })
     
-    try:
-        response = requests.post(url, headers=headers, data=payload)
-        response.raise_for_status()
-        return response.json().get('images', [])
-    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-        print(f"Error in search_images: {str(e)}")
-        return None
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(url, headers=headers, data=payload) as response:
+                response.raise_for_status()
+                data = await response.json()
+                return data.get('images', [])
+        except Exception as e:
+            print(f"Error in search_images: {str(e)}")
+            return None
 
-def verify_image_url(url):
-    try:
-        response = requests.head(url, timeout=5)
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
-        return False
+async def verify_image_url(url):
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.head(url, timeout=5) as response:
+                return response.status_code == 200
+        except Exception:
+            return False
 
-def find_valid_image_url(results, size='small'):
+async def find_valid_image_url(results, size='small'):
     if not results:
         return None
         
@@ -55,23 +59,31 @@ def find_valid_image_url(results, size='small'):
         if (url and 
             min_size <= max(width, height) <= max_size and 
             any(url.endswith(ext) for ext in image_extensions)):
-            if verify_image_url(url):
+            if await verify_image_url(url):
                 return url
     
     # If no size-matching images found, fall back to any valid image
     for result in results:
         url = result.get('imageUrl', '').lower()
         if url and any(url.endswith(ext) for ext in image_extensions):
-            if verify_image_url(url):
+            if await verify_image_url(url):
                 return url
     
     # Last resort: return first image
     return results[0].get('imageUrl')
 
-def get_logo_url(entity_name, size='small'):
-    results = search_images(entity_name)
+async def get_logo_url(entity_name, size='small')->str:
+    results = await search_images(entity_name)
     if results:
-        return find_valid_image_url(results, size)
+        return await find_valid_image_url(results, size)
     return None
 
+async def main():
+    # for entity in ["china", "usa", "tesla", "meta", "btc", "usdt", "avax", "bnb" , "sui"]:
+    # for entity in [ "76ers vs. Grizzlies",  "U.S. Federal Reserve", "Stock Market Trends", "Cryptocurrency Market Update"]:
+    for entity in ["76ers vs. Grizzlies",  "U.S. Federal Reserve", "Stock Market Trends", "Cryptocurrency Market Update"]:
+        logo_url = await get_logo_url(entity)
+        print(f"{entity}: {logo_url}")
 # Example usage:
+if __name__ == "__main__":  
+    asyncio.run(main())
